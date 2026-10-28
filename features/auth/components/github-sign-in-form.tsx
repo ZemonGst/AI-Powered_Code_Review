@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { authClient } from "@/lib/auth-client";
+import { signInWithGithub } from "@/features/auth/actions";
 
 export function GitHubIcon() {
   return (
@@ -22,51 +23,35 @@ export function GitHubIcon() {
   );
 }
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      type="submit"
+      size="lg"
+      disabled={pending}
+      className="w-full cursor-pointer"
+    >
+      {pending ? <Spinner className="size-4" /> : <GitHubIcon />}
+      <span>{pending ? "Connecting to GitHub…" : "Continue with GitHub"}</span>
+    </Button>
+  );
+}
+
 type GithubSignInFormProps = {
   /** Optional post-login redirect path (e.g. GitHub install callback or dashboard). */
   callbackUrl?: string;
 };
 
 export function GithubSignInForm({ callbackUrl }: GithubSignInFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSignIn = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: callbackUrl || "/dashboard",
-      });
-    } catch (err) {
-      console.error("Sign-in failed:", err);
-      setError("Failed to initiate GitHub sign-in. Please try again.");
-      setIsLoading(false);
-    }
-  };
-
-  const buttonLabel = isLoading ? "Connecting to GitHub…" : "Continue with GitHub";
-  const buttonIcon = isLoading ? <Spinner className="size-4" /> : <GitHubIcon />;
-
   return (
-    <div className="w-full space-y-3">
-      <Button
-        type="button"
-        size="lg"
-        disabled={isLoading}
-        onClick={handleSignIn}
-        className="w-full"
-      >
-        {buttonIcon}
-        <span>{buttonLabel}</span>
-      </Button>
-
-      {error ? (
-        <p className="text-center text-xs text-destructive">{error}</p>
+    <form action={signInWithGithub} className="w-full space-y-3">
+      {callbackUrl ? (
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
       ) : null}
-    </div>
+      <SubmitButton />
+    </form>
   );
 }
 
